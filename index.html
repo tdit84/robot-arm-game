@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2D Robot Arm Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 10px;
+    }
+    canvas {
+      background-color: #ffffff;
+      margin: 10px auto;
+      display: block;
+      border: 1px solid #ddd;
+    }
+    #controls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    button {
+      padding: 8px 10px;
+      margin: 0;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      flex: 1;
+      max-width: 120px;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    #instructions {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    #message {
+      font-size: 18px;
+      color: gold;
+      margin-top: 15px;
+      font-weight: bold;
+      animation: pulse 1s infinite alternate;
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1.2);
+        opacity: 0.8;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Robot Arm Game</h1>
+  <canvas id="robotCanvas" width="300" height="200"></canvas>
+  <div id="controls">
+    <button id="addJoint">Add Motor</button>
+    <button id="removeJoint">Remove Motor</button>
+    <button id="startOver">Start Over</button>
+  </div>
+  <div id="instructions">
+    <p>Use the sliders to adjust motor angles. Try to reach the target!</p>
+  </div>
+  <div id="message"></div>
+  <div id="sliders"></div>
+
+  <script>
+    const canvas = document.getElementById("robotCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let joints = [
+      { length: 80, angle: 0 },
+    ];
+
+    let target = {
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+    };
+
+    function resetTarget() {
+      target = {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+      };
+      document.getElementById("message").innerText = "";
+      drawArm();
+    }
+
+    function drawTarget() {
+      ctx.beginPath();
+      ctx.arc(target.x, target.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = "red";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawArm() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawTarget();
+
+      const originX = canvas.width / 2;
+      const originY = canvas.height / 2;
+      let x = originX;
+      let y = originY;
+
+      for (let i = 0; i < joints.length; i++) {
+        const joint = joints[i];
+        const dx = joint.length * Math.cos(joint.angle);
+        const dy = joint.length * Math.sin(joint.angle);
+
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + dx, y + dy);
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.closePath();
+
+        x += dx;
+        y += dy;
+
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = "blue";
+        ctx.fill();
+        ctx.closePath();
+      }
+
+      const distToTarget = Math.hypot(x - target.x, y - target.y);
+      if (distToTarget < 8) {
+        document.getElementById("message").innerText = "🎉 You won! 🎉";
+      }
+    }
+
+    function updateSliders() {
+      const slidersDiv = document.getElementById("sliders");
+      slidersDiv.innerHTML = "";
+
+      joints.forEach((joint, index) => {
+        const sliderWrapper = document.createElement("div");
+        sliderWrapper.innerHTML = `
+          <label>Motor ${index + 1} Angle: </label>
+          <input type="range" min="-180" max="180" value="${(joint.angle * 180) / Math.PI}" data-index="${index}">
+        `;
+        slidersDiv.appendChild(sliderWrapper);
+
+        const slider = sliderWrapper.querySelector("input");
+        slider.addEventListener("input", (e) => {
+          const index = parseInt(e.target.dataset.index);
+          const angle = (parseInt(e.target.value) * Math.PI) / 180;
+          joints[index].angle = angle;
+          drawArm();
+        });
+      });
+    }
+
+    document.getElementById("addJoint").addEventListener("click", () => {
+      const lastJoint = joints[joints.length - 1];
+      joints.push({ length: 60, angle: lastJoint.angle });
+      updateSliders();
+      drawArm();
+    });
+
+    document.getElementById("removeJoint").addEventListener("click", () => {
+      if (joints.length > 1) {
+        joints.pop();
+        updateSliders();
+        drawArm();
+      }
+    });
+
+    document.getElementById("startOver").addEventListener("click", resetTarget);
+
+    updateSliders();
+    drawArm();
+  </script>
+</body>
+</html>
